@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitter Scraper</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f8fa;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1da1f2;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #14171a;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccd6dd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #1da1f2;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #1991da;
+        }
+        button:disabled {
+            background-color: #ccd6dd;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #e3f7eb;
+            color: #2d862d;
+        }
+        .error {
+            background-color: #fde7e9;
+            color: #c62828;
+        }
+        .loading {
+            background-color: #e8f4fd;
+            color: #1da1f2;
+        }
+        .note {
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #657786;
+        }
+        .features {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .features h3 {
+            margin-top: 0;
+            color: #1da1f2;
+        }
+        .features ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .features li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Twitter Scraper</h1>
+        <form id="scrapeForm">
+            <div class="form-group">
+                <label for="username">Twitter Username (without @):</label>
+                <input type="text" id="username" name="username" required placeholder="e.g., elonmusk">
+            </div>
+            <button type="submit" id="submitBtn">Start Scraping</button>
+        </form>
+        <div id="status"></div>
+        
+        <div class="features">
+            <h3>📊 Export Formats</h3>
+            <p>Your scraped tweets will be saved in two formats:</p>
+            <ul>
+                <li><strong>📄 Text File (.txt)</strong> - Human-readable format</li>
+                <li><strong>📈 Excel File (.xlsx)</strong> - Spreadsheet with organized columns</li>
+            </ul>
+        </div>
+        
+        <div class="note">
+            <strong>Excel file includes:</strong>
+            <ul>
+                <li>Tweet # (sequential numbering)</li>
+                <li>Username (@username)</li>
+                <li>Date (ISO format)</li>
+                <li>Tweet Text (full content)</li>
+                <li>Likes count</li>
+                <li>Retweets count</li>
+                <li>Tweet URL (direct link)</li>
+                <li>Scraped At (timestamp)</li>
+            </ul>
+            Files are saved in the 'tweets' folder with timestamp.
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('scrapeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const submitBtn = document.getElementById('submitBtn');
+            const statusDiv = document.getElementById('status');
+
+            // Validate input
+            if (!username) {
+                showStatus('Please enter a Twitter username', 'error');
+                return;
+            }
+
+            // Disable button and show loading status
+            submitBtn.disabled = true;
+            showStatus('Starting scraping process... Please wait and watch the browser window that will open.', 'loading');
+
+            try {
+                const response = await fetch('/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus(data.message, 'success');
+                } else {
+                    showStatus(data.message, 'error');
+                }
+            } catch (error) {
+                showStatus('An error occurred while scraping. Please try again.', 'error');
+                console.error('Error:', error);
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+            
+            // Remove all status classes
+            statusDiv.classList.remove('success', 'error', 'loading');
+            
+            // Add the appropriate class
+            statusDiv.classList.add(type);
+        }
+    </script>
+</body>
+</html> 
