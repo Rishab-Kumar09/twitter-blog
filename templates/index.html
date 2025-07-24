@@ -30,7 +30,7 @@
             margin-bottom: 5px;
             color: #14171a;
         }
-        input[type="text"] {
+        input[type="text"], input[type="date"] {
             width: 100%;
             padding: 8px;
             border: 1px solid #ccd6dd;
@@ -93,16 +93,52 @@
         .features li {
             margin: 5px 0;
         }
+        .keyword-help {
+            font-size: 0.8em;
+            color: #657786;
+            margin-top: 3px;
+        }
+        .filter-row {
+            display: flex;
+            gap: 15px;
+        }
+        .filter-row .form-group {
+            flex: 1;
+        }
+        @media (max-width: 600px) {
+            .filter-row {
+                flex-direction: column;
+                gap: 0;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Twitter Scraper</h1>
+        <h1>🐦 Twitter Scraper</h1>
         <form id="scrapeForm">
             <div class="form-group">
                 <label for="username">Twitter Username (without @):</label>
                 <input type="text" id="username" name="username" required placeholder="e.g., elonmusk">
             </div>
+            
+            <div class="filter-row">
+                <div class="form-group">
+                    <label for="keywords">🔍 Filter by Keywords (optional):</label>
+                    <input type="text" id="keywords" name="keywords" placeholder="e.g., AI, technology, bitcoin">
+                    <div class="keyword-help">
+                        Separate multiple keywords with commas
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="start_date">📅 From Date (optional):</label>
+                    <input type="date" id="start_date" name="start_date">
+                    <div class="keyword-help">
+                        Only tweets from this date onwards
+                    </div>
+                </div>
+            </div>
+            
             <button type="submit" id="submitBtn">Start Scraping</button>
         </form>
         <div id="status"></div>
@@ -116,6 +152,17 @@
             </ul>
         </div>
         
+        <div class="features">
+            <h3>🔍 Advanced Filtering</h3>
+            <p>Powerful filtering options:</p>
+            <ul>
+                <li><strong>📅 Date Filtering</strong> - Get tweets from a specific date onwards</li>
+                <li><strong>🔍 Keyword Search</strong> - Case-insensitive, partial matching</li>
+                <li><strong>📊 Combined Filters</strong> - Use both date and keywords together</li>
+                <li><strong>🎯 Smart Results</strong> - Shows which filters matched each tweet</li>
+            </ul>
+        </div>
+        
         <div class="note">
             <strong>Excel file includes:</strong>
             <ul>
@@ -126,17 +173,30 @@
                 <li>Likes count</li>
                 <li>Retweets count</li>
                 <li>Tweet URL (direct link)</li>
+                <li><strong>🆕 Matched Keywords</strong> (which keywords were found)</li>
+                <li><strong>🆕 Filter Keywords</strong> (what you searched for)</li>
+                <li><strong>🆕 Start Date Filter</strong> (date filter applied)</li>
                 <li>Scraped At (timestamp)</li>
             </ul>
-            Files are saved in the 'tweets' folder with timestamp.
+            Files are saved with descriptive names including filters applied.
         </div>
     </div>
 
     <script>
+        // Set default date to 7 days ago
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.getElementById('start_date');
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            dateInput.value = sevenDaysAgo.toISOString().split('T')[0];
+        });
+
         document.getElementById('scrapeForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const username = document.getElementById('username').value.trim();
+            const keywords = document.getElementById('keywords').value.trim();
+            const startDate = document.getElementById('start_date').value;
             const submitBtn = document.getElementById('submitBtn');
             const statusDiv = document.getElementById('status');
 
@@ -148,7 +208,16 @@
 
             // Disable button and show loading status
             submitBtn.disabled = true;
-            showStatus('Starting scraping process... Please wait and watch the browser window that will open.', 'loading');
+            
+            let statusMessage = 'Starting scraping process... Please wait and watch the browser window that will open.';
+            let filters = [];
+            if (keywords) filters.push(`keywords: "${keywords}"`);
+            if (startDate) filters.push(`from: ${startDate}`);
+            
+            if (filters.length > 0) {
+                statusMessage = `Searching for tweets with ${filters.join(' and ')}. This may take longer...`;
+            }
+            showStatus(statusMessage, 'loading');
 
             try {
                 const response = await fetch('/scrape', {
@@ -157,7 +226,9 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        username: username
+                        username: username,
+                        keywords: keywords,
+                        start_date: startDate
                     })
                 });
 
