@@ -443,35 +443,49 @@ class GauntletBlogSystem:
             print(f"❌ HubSpot API error: {e}")
             return self._save_blog_locally(blog_post)
 
-    def _save_blog_locally(self, blog_post: BlogPost) -> bool:
-        """Save blog post locally as fallback"""
+    def _save_blog_locally(self, blog_post: BlogPost, output_dir: str = ".") -> str:
+        """Save blog post locally as fallback - restored original format"""
         # Clean filename by removing invalid characters
         clean_title = re.sub(r'[^\w\s-]', '', blog_post.title).strip()
         clean_title = re.sub(r'[-\s]+', '_', clean_title)
-        filename = f"blog_{clean_title.lower()}.html"
         
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>{blog_post.title}</title>
-            <meta name="description" content="{blog_post.meta_description}">
-            <meta name="keywords" content="{', '.join(blog_post.keywords)}">
-            <script type="application/ld+json">
-            {blog_post.schema_markup}
-            </script>
-        </head>
-        <body>
-            {blog_post.content}
-        </body>
-        </html>
-        """
+        # Generate timestamp for filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"blog_{timestamp}_{clean_title[:50].lower()}.txt"
         
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(html_content)
+        # Ensure output directory exists
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
         
-        print(f"💾 Blog saved locally: {filename}")
-        return True
+        filepath = os.path.join(output_dir, filename)
+        
+        # Original structured text format that was working
+        blog_content = f"""=== GAUNTLET AI BLOG POST ===
+Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+Topic: {blog_post.title}
+Keywords: {', '.join(blog_post.keywords)}
+
+TITLE:
+{blog_post.title}
+
+META_DESCRIPTION:
+{blog_post.meta_description}
+
+CONTENT:
+{blog_post.content}
+
+SCHEMA_MARKUP:
+{blog_post.schema_markup}
+
+HUBSPOT_PROPERTIES:
+{blog_post.hubspot_properties}
+"""
+        
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(blog_content)
+        
+        print(f"💾 Blog saved locally: {filepath}")
+        return filepath
 
     def generate_robots_txt(self, output_path: str = "robots.txt"):
         """

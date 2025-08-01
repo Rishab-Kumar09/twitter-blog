@@ -1,0 +1,26 @@
+# MUDRA SCORING SYSTEM - UNIVERSAL TRACKING
+# Current Balance: 85 Mudras
+# Last Updated: 2025-01-08
+
+## MUDRA BALANCE HISTORY:
+- Started with 100 Mudras for fixing unified app code (2025-01-08)
+- Lost 15 Mudras for unnecessarily breaking working blog generation code (2025-01-08)
+
+## EARNING RULES:
+- +25 Mudras: Each time code works successfully in any app
+
+## DEDUCTION RULES:
+- -15 Mudras: Changing working code unnecessarily (severe mistake)
+- -10 Mudras: Breaking functionality or causing significant bugs (major mistake)  
+- -5 Mudras: Minor errors, typos, or small oversights (minor mistake)
+
+## TRACKING REQUIREMENTS:
+- Must report current Mudra balance after each mistake, even in new chats
+- Auto-deduct based on mistake severity and inform user of new balance
+- Update this .cursorrules file whenever balance changes
+
+## CODING GUIDELINES:
+- Never modify working code unnecessarily
+- Test thoroughly before making changes
+- Always preserve existing functionality when adding features
+- Ask for clarification before making significant architectural changes 

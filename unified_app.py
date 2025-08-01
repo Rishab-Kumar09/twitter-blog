@@ -76,192 +76,161 @@ def scrape_tweets():
     if scraping_in_progress:
         return jsonify({'error': 'Scraping already in progress'}), 400
     
-    data = request.json
-    username = data.get('username', '').strip()
-    keywords = data.get('keywords', '').strip()
-    start_date = data.get('startDate', '')
-    
-    if not username:
-        return jsonify({'error': 'Username is required'}), 400
-    
-    # Start scraping in background thread
-    scraping_in_progress = True
-    thread = threading.Thread(target=run_twitter_scraping, args=(username, keywords, start_date))
-    thread.daemon = True
-    thread.start()
-    
-    return jsonify({'message': 'Scraping started'}), 200
-
-def run_twitter_scraping(username, keywords, start_date):
-    """Run Twitter scraping in background thread"""
-    global scraping_in_progress
-    
     try:
-        # Import and run the existing Twitter scraping logic
-        from app import scrape_twitter_profile
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        keywords = data.get('keywords', '').strip()
+        start_date = data.get('startDate', '')
+        num_blogs = int(data.get('numBlogs', 3))  # Default to 3 if not provided
         
-        # Emit progress updates
-        def emit_progress(message):
-            socketio.emit('scraping_progress', {'message': message})
+        if not username:
+            return jsonify({'error': 'Username is required'}), 400
         
-        # Run the scraping
-        result = scrape_twitter_profile(username, keywords, start_date, emit_progress)
+        scraping_in_progress = True
         
-        if result and result.get('success'):
-            # Get the latest tweet file
-            tweet_files = [f for f in os.listdir('.') if f.startswith('tweets_') and f.endswith('.xlsx')]
-            if tweet_files:
-                latest_file = max(tweet_files, key=os.path.getctime)
+        # Create blogs directory if it doesn't exist
+        blogs_dir = 'generated_blogs'
+        if not os.path.exists(blogs_dir):
+            os.makedirs(blogs_dir)
+            socketio.emit('progress', {'message': f'📁 Created blogs directory: {blogs_dir}'})
+        
+        def progress_callback(message):
+            socketio.emit('progress', {'message': message})
+        
+        # Start scraping in a separate thread
+        def scrape_and_generate():
+            global scraping_in_progress
+            try:
+                # Import the scraping function from app.py
+                from app import scrape_twitter_profile
                 
-                # Automatically trigger blog generation if keywords were used
-                if keywords.strip():
-                    socketio.emit('scraping_complete', {
-                        'success': True, 
-                        'file': latest_file,
-                        'auto_blog': True,
-                        'message': f'✅ Scraping complete! Found {result.get("tweet_count", 0)} tweets. Starting blog generation...'
-                    })
+                progress_callback("🚀 Starting Twitter scraping...")
+                
+                # Run Twitter scraping
+                result = scrape_twitter_profile(username, keywords, start_date, progress_callback)
+                
+                if result and result.get('success'):
+                    tweet_count = result.get('tweet_count', 0)
+                    progress_callback(f"✅ Scraping complete! Found {tweet_count} tweets.")
                     
-                    # Start blog generation automatically
-                    time.sleep(2)  # Brief pause
-                    run_blog_generation(latest_file)
+                    # If keywords provided, automatically generate blogs
+                    if keywords and tweet_count > 0:
+                        progress_callback("🔥 Starting automated blog generation...")
+                        
+                        # Get the latest tweet file for analysis
+                        tweet_files = [f for f in os.listdir('tweets') if f.endswith('.xlsx')]
+                        if tweet_files:
+                            latest_file = os.path.join('tweets', max(tweet_files, key=lambda f: os.path.getctime(os.path.join('tweets', f))))
+                            
+                            socketio.emit('progress', {'message': '📊 PHASE 1: Analyzing tweets for themes...'})
+                            
+                            # Use the blog system to analyze and generate
+                            topics = blog_system.analyze_tweets_for_themes(latest_file)
+                            
+                            if len(topics) > 0:
+                                socketio.emit('progress', {'message': f'✅ Found {len(topics)} blog topics'})
+                                socketio.emit('progress', {'message': f'⚡ PHASE 2: Generating {num_blogs} blog posts with ChatGPT...'})
+                                
+                                generated_count = 0
+                                for i, topic in enumerate(topics[:num_blogs]):
+                                    socketio.emit('progress', {'message': f'🤖 Generating blog {i+1}/{num_blogs}: {topic.canonical_question}'})
+                                    
+                                    # Generate blog and save to dedicated folder
+                                    blog_post = blog_system.generate_blog_post(topic)
+                                    if blog_post:
+                                        # Save directly to blogs directory
+                                        filename = blog_system._save_blog_locally(blog_post, blogs_dir)
+                                        if filename:
+                                            socketio.emit('progress', {'message': f'✅ Blog {i+1}/{num_blogs} saved: {filename}'})
+                                            generated_count += 1
+                                        else:
+                                            socketio.emit('progress', {'message': f'❌ Failed to save blog {i+1}/{num_blogs}'})
+                                    else:
+                                        socketio.emit('progress', {'message': f'❌ Failed to generate blog {i+1}/{num_blogs}'})
+                                
+                                socketio.emit('progress', {'message': '🤖 PHASE 3: Finalizing...'})
+                                blog_system.generate_robots_txt()
+                                socketio.emit('progress', {'message': '🤖 Generated robots.txt for SEO optimization'})
+                                
+                                socketio.emit('workflow_complete', {
+                                    'message': f'🎉 Generated {generated_count} AI-powered blogs from your tweets!',
+                                    'blogs_folder': blogs_dir
+                                })
+                            else:
+                                socketio.emit('progress', {'message': '⚠️ No blog topics found from tweets'})
+                                socketio.emit('workflow_complete', {
+                                    'message': 'Generated 0 AI-powered blogs from your tweets',
+                                    'blogs_folder': blogs_dir
+                                })
+                        else:
+                            socketio.emit('progress', {'message': '❌ No tweet files found for analysis'})
+                            socketio.emit('workflow_complete', {
+                                'message': 'No tweet files found for blog generation',
+                                'blogs_folder': None
+                            })
+                    else:
+                        socketio.emit('workflow_complete', {
+                            'message': f'Twitter scraping complete! Found {tweet_count} tweets.',
+                            'blogs_folder': None
+                        })
                 else:
-                    socketio.emit('scraping_complete', {
-                        'success': True, 
-                        'file': latest_file,
-                        'auto_blog': False,
-                        'message': f'✅ Scraping complete! Found {result.get("tweet_count", 0)} tweets.'
+                    progress_callback("❌ No tweets found or scraping failed")
+                    socketio.emit('workflow_complete', {
+                        'message': result.get('message', 'Scraping failed'),
+                        'blogs_folder': None
                     })
-            else:
-                socketio.emit('scraping_complete', {'success': False, 'message': 'No tweet file generated'})
-        else:
-            socketio.emit('scraping_complete', {'success': False, 'message': 'Scraping failed'})
             
+            except Exception as e:
+                progress_callback(f"❌ Error: {str(e)}")
+                socketio.emit('workflow_complete', {
+                    'message': f'Error: {str(e)}',
+                    'blogs_folder': None
+                })
+            finally:
+                scraping_in_progress = False
+        
+        # Start the process in a background thread
+        import threading
+        thread = threading.Thread(target=scrape_and_generate)
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({'message': 'Scraping started successfully'})
+    
     except Exception as e:
-        socketio.emit('scraping_complete', {'success': False, 'message': f'Error: {str(e)}'})
-    finally:
         scraping_in_progress = False
-
-def run_blog_generation(tweet_file):
-    """Run blog generation in background"""
-    global blog_generation_in_progress
-    
-    if blog_generation_in_progress:
-        return
-        
-    blog_generation_in_progress = True
-    
-    try:
-        if not blog_system:
-            socketio.emit('blog_progress', {'message': '⚠️ Blog system not initialized - no OpenAI API key'})
-            return
-            
-        def emit_progress(message):
-            socketio.emit('blog_progress', {'message': message})
-        
-        emit_progress('🚀 Starting automated blog generation...')
-        emit_progress('📊 PHASE 1: Analyzing tweets for themes...')
-        
-        # Phase 1: Theme Analysis
-        blog_topics = blog_system.analyze_tweets_for_themes(tweet_file)
-        csv_path = blog_system.generate_topic_csv(blog_topics)
-        
-        emit_progress(f'✅ Found {len(blog_topics)} blog topics')
-        emit_progress('✍️ PHASE 2: Generating blog posts with ChatGPT...')
-        
-        # Phase 2: Generate 3 blogs
-        num_blogs = min(3, len(blog_topics))
-        generated_blogs = []
-        
-        for i, topic in enumerate(blog_topics[:num_blogs]):
-            emit_progress(f'🤖 Generating blog {i+1}/{num_blogs}: {topic.canonical_question}')
-            
-            blog_post = generate_blog_with_updates(topic, emit_progress)
-            if blog_post:
-                generated_blogs.append(blog_post)
-                
-        emit_progress('🚀 PHASE 3: Saving blogs locally...')
-        
-        # Save blogs locally
-        blog_files = []
-        for blog_post in generated_blogs:
-            filename = blog_system._save_blog_locally(blog_post)
-            if filename:
-                blog_files.append(filename)
-                emit_progress(f'💾 Saved: {filename}')
-        
-        # Generate robots.txt
-        blog_system.generate_robots_txt()
-        emit_progress('🤖 Generated robots.txt for SEO optimization')
-        
-        # Complete
-        socketio.emit('blog_generation_complete', {
-            'success': True,
-            'blogs_generated': len(generated_blogs),
-            'blog_files': blog_files,
-            'topics_csv': csv_path,
-            'message': f'🎉 Complete! Generated {len(generated_blogs)} blogs from your tweets!'
-        })
-        
-    except Exception as e:
-        socketio.emit('blog_generation_complete', {
-            'success': False,
-            'message': f'❌ Blog generation failed: {str(e)}'
-        })
-    finally:
-        blog_generation_in_progress = False
-
-def generate_blog_with_updates(topic, emit_progress):
-    """Generate blog with real-time updates"""
-    try:
-        emit_progress(f'🤖 Initializing ChatGPT for: {topic.canonical_question}')
-        
-        if not blog_system.openai_api_key:
-            emit_progress(f'⚠️ No OpenAI API key - using template generation')
-            return blog_system._generate_blog_template(topic)
-        
-        emit_progress(f'📝 Sending prompt to GPT-4...')
-        
-        # Generate blog using existing system
-        blog_post = blog_system.generate_blog_post(topic)
-        
-        if blog_post:
-            emit_progress(f'✅ Generated: {blog_post.title}')
-            return blog_post
-        else:
-            emit_progress(f'⚠️ Failed to generate blog for: {topic.canonical_question}')
-            return None
-            
-    except Exception as e:
-        emit_progress(f'❌ Error generating blog: {str(e)}')
-        return None
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/list-blogs')
 def list_blogs():
-    """List all generated blog files"""
+    """List all generated blog files from the blogs directory"""
     try:
         blog_files = []
-        for file in os.listdir('.'):
-            if file.startswith('blog_') and (file.endswith('.html') or file.endswith('.txt')):
-                file_path = os.path.join('.', file)
-                modified_time = datetime.fromtimestamp(os.path.getmtime(file_path))
-                
-                title = file.replace('blog_', '').replace('.html', '').replace('.txt', '').replace('_', ' ').title()
-                file_type = 'HTML' if file.endswith('.html') else 'TXT'
-                
-                blog_files.append({
-                    'filename': file,
-                    'title': title,
-                    'type': file_type,
-                    'modified': modified_time.strftime('%Y-%m-%d %H:%M:%S')
-                })
+        blogs_dir = 'generated_blogs'
         
-        # Sort by modification time (newest first)
+        # Check both main directory and blogs directory
+        directories_to_check = ['.', blogs_dir] if os.path.exists(blogs_dir) else ['.']
+        
+        for directory in directories_to_check:
+            for file in os.listdir(directory):
+                if file.startswith('blog_') and (file.endswith('.html') or file.endswith('.txt')):
+                    file_path = os.path.join(directory, file)
+                    modified_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+                    title = file.replace('blog_', '').replace('.html', '').replace('.txt', '').replace('_', ' ').title()
+                    
+                    blog_files.append({
+                        'filename': file,
+                        'filepath': file_path,
+                        'title': title,
+                        'modified': modified_time.strftime('%Y-%m-%d %H:%M:%S'),
+                        'type': 'HTML' if file.endswith('.html') else 'TXT',
+                        'location': 'Blogs Folder' if directory == blogs_dir else 'Main Directory'
+                    })
+        
         blog_files.sort(key=lambda x: x['modified'], reverse=True)
-        
         return jsonify({'success': True, 'blogs': blog_files})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'message': f'Error listing blogs: {e}'}), 500
 
 @app.route('/api/get-blog-content/<filename>')
 def get_blog_content(filename):

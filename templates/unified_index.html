@@ -392,10 +392,16 @@
 
                 <div class="form-group">
                     <label for="startDate">Scrape tweets until date:</label>
-                    <input type="date" id="startDate">
+                    <input type="date" id="startDate" class="form-input" required>
                 </div>
 
-                <button class="btn" id="startScraping">
+                <div class="form-group">
+                    <label for="numBlogs">📊 Number of Blogs to Generate:</label>
+                    <input type="number" id="numBlogs" class="form-input" min="1" max="20" value="3" required>
+                    <small>Choose how many AI blogs to generate (1-20)</small>
+                </div>
+
+                <button type="button" id="startScraping" class="btn btn-primary">
                     <span class="icon">🚀</span>
                     Start Unified Workflow
                 </button>
@@ -514,11 +520,47 @@
             startButton.innerHTML = '<span class="icon">🚀</span>Start Unified Workflow';
         });
 
+        // Listen for progress updates
+        socket.on('progress', (data) => {
+            addLogEntry(data.message);
+        });
+
+        // Listen for workflow completion
+        socket.on('workflow_complete', (data) => {
+            addLogEntry(`🎉 ${data.message}`);
+            if (data.blogs_folder) {
+                addLogEntry(`📁 Blogs saved in: ${data.blogs_folder}/`);
+            }
+            
+            // Update the completion message
+            const completionDiv = document.createElement('div');
+            completionDiv.className = 'completion-message';
+            completionDiv.innerHTML = `
+                <h3>🎉 Workflow Complete!</h3>
+                <p>${data.message}</p>
+                ${data.blogs_folder ? `<p><strong>📁 Files saved:</strong> ${data.blogs_folder}/</p>` : ''}
+            `;
+            
+            const progressSection = document.getElementById('progress-section');
+            progressSection.appendChild(completionDiv);
+            
+            // Re-enable the button
+            const submitBtn = document.getElementById('startScraping');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span class="icon">🚀</span> Start Unified Workflow';
+            }
+            
+            // Refresh blog list
+            loadBlogList();
+        });
+
         // Start scraping function
         async function startScraping() {
             const username = document.getElementById('username').value.trim();
             const keywords = document.getElementById('keywords').value.trim();
             const startDate = document.getElementById('startDate').value;
+            const numBlogs = document.getElementById('numBlogs').value;
 
             if (!username) {
                 alert('Please enter a Twitter username');
@@ -545,7 +587,8 @@
                     body: JSON.stringify({
                         username: username,
                         keywords: keywords,
-                        startDate: startDate
+                        startDate: startDate,
+                        numBlogs: numBlogs
                     })
                 });
 
