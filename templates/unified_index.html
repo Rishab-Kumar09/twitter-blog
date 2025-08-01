@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Unified Twitter Scraper & AI Blog Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .workflow-steps {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            margin: 0 15px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+
+        .arrow {
+            margin: 0 10px;
+            color: #6c757d;
+            font-size: 20px;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            font-size: 1.5em;
+        }
+
+        .section h2 .icon {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn .icon {
+            margin-right: 8px;
+        }
+
+        .log-container {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            height: 300px;
+            overflow-y: auto;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px 0;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-idle { background-color: #6c757d; }
+        .status-active { background-color: #28a745; animation: pulse 1.5s infinite; }
+        .status-complete { background-color: #17a2b8; }
+        .status-error { background-color: #dc3545; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .blog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .blog-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .blog-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .blog-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .blog-card .meta {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .blog-card .preview {
+            color: #495057;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .close-button {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close-button:hover {
+            opacity: 0.7;
+        }
+
+        .blog-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .progress-section {
+            margin-top: 20px;
+        }
+
+        .workflow-complete {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .workflow-complete h3 {
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .workflow-steps {
+                flex-direction: column;
+            }
+
+            .step {
+                margin: 10px 0;
+            }
+
+            .arrow {
+                transform: rotate(90deg);
+            }
+
+            .blog-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Unified Twitter Scraper & AI Blog Generator</h1>
+            <p>Extract tweets with keywords → Generate AI-powered blogs automatically</p>
+        </div>
+
+        <div class="workflow-steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <span>Scrape Tweets</span>
+            </div>
+            <div class="arrow">→</div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <span>Filter by Keywords</span>
+            </div>
+            <div class="arrow">→</div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <span>Generate AI Blogs</span>
+            </div>
+            <div class="arrow">→</div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <span>View Results</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Twitter Scraping Section -->
+            <div class="section">
+                <h2><span class="icon">🐦</span>Step 1: Twitter Scraping Configuration</h2>
+                
+                <div class="form-group">
+                    <label for="username">Twitter Username (without @):</label>
+                    <input type="text" id="username" placeholder="e.g., Austen" value="Austen">
+                </div>
+
+                <div class="form-group">
+                    <label for="keywords">Keywords for Blog Generation (optional):</label>
+                    <input type="text" id="keywords" placeholder="e.g., AI, Gauntlet, automation" value="Gauntlet">
+                    <small style="color: #6c757d; font-size: 0.9em;">
+                        💡 If keywords are provided, blogs will be automatically generated after scraping!
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="startDate">Scrape tweets until date:</label>
+                    <input type="date" id="startDate">
+                </div>
+
+                <button class="btn" id="startScraping">
+                    <span class="icon">🚀</span>
+                    Start Unified Workflow
+                </button>
+            </div>
+
+            <!-- Progress Section -->
+            <div class="section progress-section">
+                <h2><span class="icon">📊</span>Real-time Progress</h2>
+                
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                    <span class="status-indicator status-idle" id="statusIndicator"></span>
+                    <span id="statusText">Ready to start</span>
+                </div>
+
+                <div class="log-container" id="logContainer">
+                    <div class="log-entry">🎯 Welcome to the Unified Twitter Scraper & AI Blog Generator!</div>
+                    <div class="log-entry">💡 Enter a Twitter username and keywords to get started</div>
+                    <div class="log-entry">🚀 If keywords are provided, blogs will be generated automatically after scraping</div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="section hidden" id="resultsSection">
+                <h2><span class="icon">🎉</span>Generated Blogs</h2>
+                <p>Your AI-generated blogs based on the scraped tweets:</p>
+                <div class="blog-grid" id="blogGrid">
+                    <!-- Blog cards will be populated here -->
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <button class="btn" onclick="refreshBlogs()">
+                        <span class="icon">🔄</span>
+                        Refresh Blog List
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Blog Content Modal -->
+    <div id="blogModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Blog Content</h2>
+                <span class="close-button" onclick="closeBlogModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="blog-content" id="modalContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let scrapingInProgress = false;
+        let blogGenerationInProgress = false;
+
+        // Set default start date to 10 days ago
+        const startDateInput = document.getElementById('startDate');
+        const tenDaysAgo = new Date();
+        tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+        startDateInput.value = tenDaysAgo.toISOString().split('T')[0];
+
+        // DOM elements
+        const startButton = document.getElementById('startScraping');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const logContainer = document.getElementById('logContainer');
+        const resultsSection = document.getElementById('resultsSection');
+
+        // Socket event listeners
+        socket.on('scraping_progress', (data) => {
+            addLogEntry(data.message);
+            updateStatus('active', 'Scraping tweets...');
+        });
+
+        socket.on('scraping_complete', (data) => {
+            addLogEntry(data.message);
+            
+            if (data.success) {
+                if (data.auto_blog) {
+                    updateStatus('active', 'Starting blog generation...');
+                } else {
+                    updateStatus('complete', 'Scraping complete');
+                    scrapingInProgress = false;
+                    startButton.disabled = false;
+                    startButton.innerHTML = '<span class="icon">🚀</span>Start Unified Workflow';
+                }
+            } else {
+                updateStatus('error', 'Scraping failed');
+                scrapingInProgress = false;
+                startButton.disabled = false;
+                startButton.innerHTML = '<span class="icon">🚀</span>Start Unified Workflow';
+            }
+        });
+
+        socket.on('blog_progress', (data) => {
+            addLogEntry(data.message);
+            updateStatus('active', 'Generating blogs with AI...');
+        });
+
+        socket.on('blog_generation_complete', (data) => {
+            addLogEntry(data.message);
+            
+            if (data.success) {
+                updateStatus('complete', 'Workflow complete! 🎉');
+                showWorkflowComplete(data);
+                refreshBlogs();
+            } else {
+                updateStatus('error', 'Blog generation failed');
+            }
+            
+            blogGenerationInProgress = false;
+            scrapingInProgress = false;
+            startButton.disabled = false;
+            startButton.innerHTML = '<span class="icon">🚀</span>Start Unified Workflow';
+        });
+
+        // Start scraping function
+        async function startScraping() {
+            const username = document.getElementById('username').value.trim();
+            const keywords = document.getElementById('keywords').value.trim();
+            const startDate = document.getElementById('startDate').value;
+
+            if (!username) {
+                alert('Please enter a Twitter username');
+                return;
+            }
+
+            scrapingInProgress = true;
+            startButton.disabled = true;
+            startButton.innerHTML = '<span class="icon">⏳</span>Starting...';
+            
+            updateStatus('active', 'Initializing scraper...');
+            addLogEntry('🚀 Starting unified workflow...');
+            
+            if (keywords) {
+                addLogEntry(`🎯 Keywords detected: "${keywords}" - blogs will be generated automatically!`);
+            }
+
+            try {
+                const response = await fetch('/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        keywords: keywords,
+                        startDate: startDate
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'Failed to start scraping');
+                }
+                
+                addLogEntry('✅ Scraping started successfully');
+                
+            } catch (error) {
+                addLogEntry(`❌ Error: ${error.message}`);
+                updateStatus('error', 'Failed to start');
+                scrapingInProgress = false;
+                startButton.disabled = false;
+                startButton.innerHTML = '<span class="icon">🚀</span>Start Unified Workflow';
+            }
+        }
+
+        // Event listeners
+        startButton.addEventListener('click', startScraping);
+
+        // Utility functions
+        function addLogEntry(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function updateStatus(status, text) {
+            statusIndicator.className = `status-indicator status-${status}`;
+            statusText.textContent = text;
+        }
+
+        function showWorkflowComplete(data) {
+            const completeDiv = document.createElement('div');
+            completeDiv.className = 'workflow-complete';
+            completeDiv.innerHTML = `
+                <h3>🎉 Workflow Complete!</h3>
+                <p>Generated ${data.blogs_generated} AI-powered blogs from your tweets</p>
+                <p>📁 Files saved: ${data.blog_files.join(', ')}</p>
+            `;
+            
+            // Insert before results section
+            resultsSection.parentNode.insertBefore(completeDiv, resultsSection);
+            
+            // Show results section
+            resultsSection.classList.remove('hidden');
+            
+            // Scroll to results
+            setTimeout(() => {
+                resultsSection.scrollIntoView({ behavior: 'smooth' });
+            }, 500);
+        }
+
+        // Blog management functions
+        async function refreshBlogs() {
+            try {
+                const response = await fetch('/api/list-blogs');
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayBlogs(result.blogs);
+                } else {
+                    console.error('Failed to load blogs:', result.error);
+                }
+            } catch (error) {
+                console.error('Error loading blogs:', error);
+            }
+        }
+
+        function displayBlogs(blogs) {
+            const blogGrid = document.getElementById('blogGrid');
+            
+            if (blogs.length === 0) {
+                blogGrid.innerHTML = '<p style="text-align: center; color: #6c757d; grid-column: 1/-1;">No blogs generated yet. Run the workflow to create blogs!</p>';
+                return;
+            }
+
+            blogGrid.innerHTML = blogs.map(blog => `
+                <div class="blog-card" onclick="viewBlog('${blog.filename}')">
+                    <h3>${blog.title}</h3>
+                    <div class="meta">
+                        📄 ${blog.type} • 📅 ${blog.modified}
+                    </div>
+                    <div class="preview">
+                        Click to view full content...
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function viewBlog(filename) {
+            try {
+                const response = await fetch(`/api/get-blog-content/${filename}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('modalTitle').textContent = result.title;
+                    document.getElementById('modalContent').textContent = result.content;
+                    document.getElementById('blogModal').style.display = 'block';
+                } else {
+                    alert('Failed to load blog content: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error loading blog: ' + error.message);
+            }
+        }
+
+        function closeBlogModal() {
+            document.getElementById('blogModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('blogModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshBlogs();
+        });
+    </script>
+</body>
+</html> 

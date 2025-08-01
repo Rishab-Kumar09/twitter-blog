@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐦 Twitter Scraper - Download & Setup</title>
+    <link rel="stylesheet" href="static/style.css">
+    <meta name="description" content="Advanced Twitter scraper with real-time progress updates, keyword filtering, and Excel export">
+    <meta name="keywords" content="twitter, scraper, playwright, python, social media, data extraction">
+</head>
+<body>
+    <div class="container">
+        <h1>🐦 Twitter Scraper</h1>
+        <p class="subtitle">Advanced Twitter scraping with real-time progress & filtering</p>
+        
+        <div class="deployment-notice">
+            <h3>📦 Deployment Notice</h3>
+            <p><strong>This tool requires local installation</strong> due to browser automation requirements.</p>
+            <p>Netlify hosts static sites, but our scraper needs Python + browser automation which must run locally.</p>
+        </div>
+        
+        <div class="download-section">
+            <h3>🚀 Get Started - Download & Run Locally</h3>
+            <p>Download the complete Twitter Scraper and run it on your computer:</p>
+            
+            <a href="https://github.com/your-username/twitter-scraper/archive/refs/heads/main.zip" class="download-button">
+                📥 Download ZIP
+            </a>
+            <a href="https://github.com/your-username/twitter-scraper" class="download-button">
+                🔗 View on GitHub
+            </a>
+        </div>
+
+        <div class="features">
+            <h3>✨ Features</h3>
+            <ul>
+                <li><strong>🔓 Full Profile Access:</strong> Login to access thousands of tweets, not just recent ones</li>
+                <li><strong>🔍 Advanced Filtering:</strong> Filter by keywords and date ranges</li>
+                <li><strong>📊 Dual Export:</strong> Both text (.txt) and Excel (.xlsx) formats</li>
+                <li><strong>🔗 Complete Data:</strong> Tweet text, dates, likes, retweets, and URLs</li>
+                <li><strong>⚡ Smart Scrolling:</strong> Automatically detects when all tweets are collected</li>
+                <li><strong>📺 Live Progress:</strong> Real-time updates showing scraping progress</li>
+                <li><strong>🎯 Intelligent Filtering:</strong> Case-insensitive keyword matching</li>
+                <li><strong>📅 Date Range Support:</strong> Scrape tweets from specific date onwards</li>
+            </ul>
+            
+            <h4>📋 Excel File Includes:</h4>
+            <ul>
+                <li>Tweet text, date, and engagement metrics</li>
+                <li>Direct links to each tweet</li>
+                <li>Matched keywords (if filtering)</li>
+                <li>Filter settings used</li>
+                <li>Auto-formatted columns with proper widths</li>
+            </ul>
+        </div>
+
+        <div class="features">
+            <h3>🛠️ Quick Setup Instructions</h3>
+            <ol class="deployment-steps">
+                <li><strong>Download:</strong> Click the download button above</li>
+                <li><strong>Extract:</strong> Unzip the downloaded file</li>
+                <li><strong>Install Python:</strong> Make sure Python 3.8+ is installed</li>
+                <li><strong>Install Dependencies:</strong>
+                    <pre style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">pip install -r requirements.txt</pre>
+                </li>
+                <li><strong>Install Playwright Browsers:</strong>
+                    <pre style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">playwright install chromium</pre>
+                </li>
+                <li><strong>Run the Application:</strong>
+                    <pre style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">python app.py</pre>
+                </li>
+                <li><strong>Open Browser:</strong> Go to <code>http://localhost:5000</code></li>
+                <li><strong>Start Scraping:</strong> Enter a username and watch the magic happen!</li>
+            </ol>
+        </div>
+
+        <div class="features">
+            <h3>🔧 System Requirements</h3>
+            <ul>
+                <li><strong>Operating System:</strong> Windows, macOS, or Linux</li>
+                <li><strong>Python:</strong> Version 3.8 or higher</li>
+                <li><strong>RAM:</strong> At least 4GB (8GB recommended for large profiles)</li>
+                <li><strong>Storage:</strong> 500MB free space for dependencies</li>
+                <li><strong>Internet:</strong> Stable connection required</li>
+                <li><strong>Browser:</strong> Chromium will be auto-installed by Playwright</li>
+            </ul>
+        </div>
+
+        <div class="features">
+            <h3>❓ Why Local Installation?</h3>
+            <p>This Twitter scraper uses advanced browser automation that requires:</p>
+            <ul>
+                <li><strong>Real Browser:</strong> Playwright launches actual Chromium browser</li>
+                <li><strong>User Login:</strong> You need to log in to Twitter for full access</li>
+                <li><strong>File System:</strong> Saves tweets to your local computer</li>
+                <li><strong>Long Running:</strong> Can take minutes to scrape large profiles</li>
+                <li><strong>System Resources:</strong> Needs more memory/CPU than serverless allows</li>
+            </ul>
+            <p>These features make it impossible to run on static hosting platforms like Netlify, but provide much more powerful functionality than simple web scrapers.</p>
+        </div>
+
+        <div class="features">
+            <h3>🎯 Use Cases</h3>
+            <ul>
+                <li><strong>Research:</strong> Analyze tweet patterns and engagement</li>
+                <li><strong>Content Analysis:</strong> Study social media trends</li>
+                <li><strong>Backup:</strong> Archive important tweets locally</li>
+                <li><strong>Marketing:</strong> Track brand mentions and sentiment</li>
+                <li><strong>Academic:</strong> Collect data for research projects</li>
+                <li><strong>Personal:</strong> Download your own tweet history</li>
+            </ul>
+        </div>
+
+        <div class="warning">
+            <h4>⚖️ Legal & Ethical Use</h4>
+            <p><strong>Important:</strong> This tool is for educational and research purposes. Please:</p>
+            <ul style="text-align: left; margin-top: 10px;">
+                <li>Respect Twitter's Terms of Service</li>
+                <li>Don't scrape private or protected accounts</li>
+                <li>Use reasonable rate limits</li>
+                <li>Respect user privacy and data protection laws</li>
+                <li>Only scrape public information</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Add some interactive elements for better UX
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add copy functionality for code blocks
+            const codeBlocks = document.querySelectorAll('pre');
+            codeBlocks.forEach(block => {
+                block.style.position = 'relative';
+                block.style.cursor = 'pointer';
+                block.title = 'Click to copy';
+                
+                block.addEventListener('click', function() {
+                    navigator.clipboard.writeText(this.textContent).then(() => {
+                        const originalText = this.textContent;
+                        this.textContent = 'Copied! ✓';
+                        this.style.background = '#d4edda';
+                        
+                        setTimeout(() => {
+                            this.textContent = originalText;
+                            this.style.background = '#f8f9fa';
+                        }, 2000);
+                    });
+                });
+            });
+
+            // Add smooth scrolling for better UX
+            const links = document.querySelectorAll('a[href^="#"]');
+            links.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html> 
